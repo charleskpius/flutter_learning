@@ -229,8 +229,7 @@ class SignupFormState extends State<SignupForm> {
                   signUpWithEmailAndPassword();
                 } else {
                   // If any field is not filled or validation fails, show an error message using Snackbar
-                  showErrorMessage(
-                      "Please fill in all the fields correctly.");
+                  showErrorMessage("Please fill in all the fields correctly.");
                 }
               },
               child: const Text('Sign Up'),
@@ -241,8 +240,7 @@ class SignupFormState extends State<SignupForm> {
                 //Navigate to the login page when the "Login" button is pressed
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const LoginPage()),
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
                 );
               },
               child: const Text(

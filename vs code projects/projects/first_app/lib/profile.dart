@@ -33,29 +33,24 @@ class ProfilePageState extends State<ProfilePage> {
         TextEditingController(text: _user?.displayName ?? '');
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
-
-    fetchUserDetails();
   }
 
-  Future<void> fetchUserDetails() async {
+  Future<UserDetails> fetchUserDetails() async {
     try {
       DocumentSnapshot userSnapshot =
           await _firestore.collection('users').doc(_user?.uid).get();
 
       if (userSnapshot.exists) {
-        setState(() {
-          _displayNameController.text = userSnapshot['name'];
-          _emailController.text = userSnapshot['email'];
-          _phoneController.text = userSnapshot['phone'];
-        });
+        return UserDetails(
+          name: userSnapshot['name'],
+          email: userSnapshot['email'],
+          phone: userSnapshot['phone'],
+        );
       }
+      // Handle the case when user details are not available
+      return UserDetails(); // You may want to have default values or throw an error here
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error fetching user details: $error'),
-          duration: const Duration(seconds: 5),
-        ),
-      );
+      rethrow;
     }
   }
 
@@ -67,9 +62,9 @@ class ProfilePageState extends State<ProfilePage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Changes saved successfully'),
-          duration: const Duration(seconds: 3),
+          duration: Duration(seconds: 3),
         ),
       );
     } catch (error) {
@@ -90,60 +85,85 @@ class ProfilePageState extends State<ProfilePage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Profile Information',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _isEditing
-                  ? TextFormField(
-                      controller: _displayNameController,
-                      decoration: InputDecoration(labelText: 'Display Name'),
-                    )
-                  : Text(
-                      'Display Name: ${_displayNameController.text}',
-                      style: const TextStyle(fontSize: 16, color: Colors.black),
-                    ),
-              const SizedBox(height: 20),
-              Text(
-                'Email: ${_emailController.text}',
-                style: const TextStyle(fontSize: 16, color: Colors.black),
-              ),
-              const SizedBox(height: 20),
-              _isEditing
-                  ? TextFormField(
-                      controller: _phoneController,
-                      decoration: InputDecoration(labelText: 'Phone Number'),
-                    )
-                  : Text(
-                      'Phone Number: ${_phoneController.text}',
-                      style: const TextStyle(fontSize: 16, color: Colors.black),
-                    ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _isEditing = !_isEditing;
-                  });
+        child: FutureBuilder<UserDetails>(
+          future: fetchUserDetails(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else {
+              UserDetails userDetails = snapshot.data ?? UserDetails();
 
-                  if (!_isEditing) {
-                    saveChanges();
-                  }
-                },
-                child: Text(_isEditing ? 'Save Changes' : 'Edit Profile'),
-              ),
-            ],
-          ),
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Profile Information',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _isEditing
+                        ? TextFormField(
+                            controller: _displayNameController,
+                            decoration:
+                                const InputDecoration(labelText: 'Display Name'),
+                          )
+                        : Text(
+                            'Display Name: ${userDetails.name}',
+                            style:
+                                const TextStyle(fontSize: 16, color: Colors.black),
+                          ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Email: ${userDetails.email}',
+                      style: const TextStyle(fontSize: 16, color: Colors.black),
+                    ),
+                    const SizedBox(height: 20),
+                    _isEditing
+                        ? TextFormField(
+                            controller: _phoneController,
+                            decoration:
+                                const InputDecoration(labelText: 'Phone Number'),
+                          )
+                        : Text(
+                            'Phone Number: ${userDetails.phone}',
+                            style:
+                                const TextStyle(fontSize: 16, color: Colors.black),
+                          ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _isEditing = !_isEditing;
+                        });
+
+                        if (!_isEditing) {
+                          saveChanges();
+                        }
+                      },
+                      child: Text(_isEditing ? 'Save Changes' : 'Edit Profile'),
+                    ),
+                  ],
+                ),
+              );
+            }
+          },
         ),
       ),
     );
   }
+}
+
+class UserDetails {
+  final String name;
+  final String email;
+  final String phone;
+
+  UserDetails({this.name = '', this.email = '', this.phone = ''});
 }

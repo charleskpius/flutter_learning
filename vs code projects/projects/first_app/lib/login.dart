@@ -1,11 +1,12 @@
-import 'package:first_app/home.dart';
-import 'package:first_app/signup.dart';
+import 'package:first_app/shared_preference.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:first_app/home.dart';
+import 'package:first_app/signup.dart';
 
 class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+  const LoginPage({Key? key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,8 +15,8 @@ class LoginPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Login Page'),
       ),
-      body: const Padding(
-        padding: EdgeInsets.all(16.0),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: LoginForm(),
       ),
     );
@@ -23,7 +24,7 @@ class LoginPage extends StatelessWidget {
 }
 
 class LoginForm extends StatefulWidget {
-  const LoginForm({super.key});
+  const LoginForm({Key? key});
 
   @override
   LoginFormState createState() => LoginFormState();
@@ -52,8 +53,7 @@ class LoginFormState extends State<LoginForm> {
     }
 
     // Use regex to validate email format
-    if (!RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$')
-        .hasMatch(email)) {
+    if (!RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$').hasMatch(email)) {
       return 'Enter a valid email address';
     }
 
@@ -63,37 +63,37 @@ class LoginFormState extends State<LoginForm> {
   Future<void> loginUser() async {
     final String email = emailController.text;
     final String password = passwordController.text;
+    await SharedPreferencesService().saveUserLoginStatus(true);
 
     // Validate email and password
     String? emailError = validateEmail(email);
     String? passwordError = validatePassword(password);
 
     if (emailError != null || passwordError != null) {
-      final snackBar = SnackBar(
-        content: Text(emailError ?? passwordError!),
-        duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(emailError ?? passwordError!),
+          duration: const Duration(seconds: 2),
+        ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
       return;
     }
 
     try {
-      UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       // Get the user document from Firestore using the UID
-      DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore
-          .instance
+      DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
           .get();
 
       if (userDoc.exists) {
         // User found, navigate to the home page
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           CustomPageRoute(page: const HomeScreen()),
         );
@@ -102,19 +102,21 @@ class LoginFormState extends State<LoginForm> {
         passwordController.clear();
       } else {
         // User not found, display an error message using SnackBar
-        const snackBar = SnackBar(
-          content: Text('Invalid email or password'),
-          duration: Duration(seconds: 2),
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid email or password'),
+            duration: Duration(seconds: 2),
+          ),
         );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     } on FirebaseAuthException {
       // If login fails, display an error message using SnackBar
-      const snackBar = SnackBar(
-        content: Text('Invalid email or password'),
-        duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid email or password'),
+          duration: Duration(seconds: 2),
+        ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -122,28 +124,31 @@ class LoginFormState extends State<LoginForm> {
     String email = emailController.text;
 
     if (email.isEmpty) {
-      final snackBar = SnackBar(
-        content: Text('Please enter your email'),
-        duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email'),
+          duration: Duration(seconds: 2),
+        ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
       return;
     }
 
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
 
-      final snackBar = SnackBar(
-        content: Text('Password reset email sent to $email'),
-        duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent'),
+          duration: Duration(seconds: 2),
+        ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } on FirebaseAuthException catch (e) {
-      final snackBar = SnackBar(
-        content: Text('Error: ${e.message}'),
-        duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.message}'),
+          duration: const Duration(seconds: 2),
+        ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -169,9 +174,7 @@ class LoginFormState extends State<LoginForm> {
         ),
         const SizedBox(height: 8.0),
         TextButton(
-          onPressed: () {
-            resetPassword();
-          },
+          onPressed: resetPassword,
           child: const Text(
             'Forgot Password',
             style: TextStyle(color: Colors.blue),
@@ -179,21 +182,16 @@ class LoginFormState extends State<LoginForm> {
         ),
         const SizedBox(height: 24.0),
         ElevatedButton(
-          onPressed: () {
-            setState(() {
-              loginUser();
-            });
-          },
+          onPressed: loginUser,
           child: const Text('Login'),
         ),
         const SizedBox(height: 16.0),
         TextButton(
           onPressed: () {
-            //Navigate to the login page when the "Login" button is pressed
-            Navigator.push(
+            // Navigate to the login page when the "Login" button is pressed
+            Navigator.pushReplacement(
               context,
-              CustomPageRoute(page: const SignUpPage(),
-              ),
+              CustomPageRoute(page: const SignUpPage()),
             );
           },
           child: const Text(

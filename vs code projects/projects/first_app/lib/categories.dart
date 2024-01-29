@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'bottom_navigation.dart';
-import 'category.dart'; // Import your CategoryPage here
+import 'category.dart';
 
 class CategoriesPage extends StatefulWidget {
   @override
@@ -10,13 +10,13 @@ class CategoriesPage extends StatefulWidget {
 }
 
 class CategoriesPageState extends State<CategoriesPage> {
-  late Future<List<String>> categoriesFuture;
+  late Future<List<String>> futureCategories;
   int _selectedIndex = 1; // Define _selectedIndex
 
   @override
   void initState() {
     super.initState();
-    categoriesFuture = fetchCategories();
+    futureCategories = fetchCategories();
   }
 
   void onTabChange(int index) {
@@ -27,19 +27,15 @@ class CategoriesPageState extends State<CategoriesPage> {
 
   Future<List<String>> fetchCategories() async {
     try {
-      final response = await http
-          .get(Uri.parse('https://dummyjson.com/products/categories'));
+      final response =
+          await http.get(Uri.parse('https://dummyjson.com/products/categories'));
 
       if (response.statusCode == 200) {
-        final List<String> categories =
-            List<String>.from(json.decode(response.body));
-        return categories;
+        return List<String>.from(json.decode(response.body));
       } else {
-        // Handle error
         throw Exception('Failed to load categories');
       }
     } catch (e) {
-      // Handle exception
       throw Exception('Error fetching categories: $e');
     }
   }
@@ -52,21 +48,19 @@ class CategoriesPageState extends State<CategoriesPage> {
         automaticallyImplyLeading: false,
       ),
       body: FutureBuilder<List<String>>(
-        future: categoriesFuture,
+        future: futureCategories,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else {
-            List<String> categories = snapshot.data ?? [];
             return ListView.builder(
-              itemCount: categories.length,
+              itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
-                // Capitalize the first letter of the category
                 String capitalizedCategory =
-                    categories[index].substring(0, 1).toUpperCase() +
-                        categories[index].substring(1);
+                    snapshot.data![index].substring(0, 1).toUpperCase() +
+                        snapshot.data![index].substring(1);
 
                 return Card(
                   shape: RoundedRectangleBorder(
@@ -84,8 +78,9 @@ class CategoriesPageState extends State<CategoriesPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              CategoryPage(categoryName: capitalizedCategory),
+                          builder: (context) => FutureCategoryPage(
+                            categoryName: capitalizedCategory,
+                          ),
                         ),
                       );
                     },
@@ -109,4 +104,59 @@ class CategoryData {
   final String imageUrl;
 
   CategoryData({required this.name, required this.imageUrl});
+}
+
+class FutureCategoryPage extends StatefulWidget {
+  final String categoryName;
+
+  const FutureCategoryPage({Key? key, required this.categoryName})
+      : super(key: key);
+
+  @override
+  _FutureCategoryPageState createState() => _FutureCategoryPageState();
+}
+
+class _FutureCategoryPageState extends State<FutureCategoryPage> {
+  late Future<Map<String, dynamic>> futureCategoryData;
+
+  @override
+  void initState() {
+    super.initState();
+    futureCategoryData = fetchCategoryDetails(widget.categoryName);
+  }
+
+  Future<Map<String, dynamic>> fetchCategoryDetails(String categoryName) async {
+    try {
+      // Replace this with the actual API endpoint for category details
+      final response = await http.get(
+          Uri.parse('https://dummyjson.com/category/details/$categoryName'));
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(json.decode(response.body));
+      } else {
+        throw Exception('Failed to load category details');
+      }
+    } catch (e) {
+      throw Exception('Error fetching category details: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: futureCategoryData,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          return CategoryPage(
+            categoryData: snapshot.data!,
+            categoryName: widget.categoryName,
+          );
+        }
+      },
+    );
+  }
 }

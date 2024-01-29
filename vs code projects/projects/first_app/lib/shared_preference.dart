@@ -27,10 +27,8 @@ class SharedPreferencesService {
     User? user = _auth.currentUser;
 
     if (user != null) {
-      DocumentSnapshot<Map<String, dynamic>> snapshot = await _firestore
-          .collection('user_preferences')
-          .doc(user.uid)
-          .get();
+      DocumentSnapshot<Map<String, dynamic>> snapshot =
+          await _firestore.collection('user_preferences').doc(user.uid).get();
 
       Map<String, dynamic>? data = snapshot.data();
 
@@ -40,5 +38,15 @@ class SharedPreferencesService {
     }
 
     return value;
+  }
+
+  Future<void> saveUserLoginStatus(bool isLoggedIn) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', isLoggedIn);
+  }
+
+  Future<bool> getUserLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('isLoggedIn') ?? false;
   }
 }

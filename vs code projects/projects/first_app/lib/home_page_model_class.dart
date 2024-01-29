@@ -39,7 +39,7 @@ class Products {
   String? brand;
   String? category;
   String? thumbnail;
-  List<String>? images;
+  List<String>? image;
 
   Products({
     this.key,
@@ -52,7 +52,7 @@ class Products {
     this.brand,
     this.category,
     this.thumbnail,
-    this.images,
+    this.image,
   });
 
   Products.fromJson(Map<String, dynamic> json) {
@@ -66,7 +66,7 @@ class Products {
     brand = json['brand'];
     category = json['category'];
     thumbnail = json['thumbnail'];
-    images = List<String>.from(json['images'] ?? <String>[]);
+    image = List<String>.from(json['images'] ?? <String>[]);
   }
 
   Map<String, dynamic> toJson() {
@@ -81,7 +81,7 @@ class Products {
     data['brand'] = brand;
     data['category'] = category;
     data['thumbnail'] = thumbnail;
-    data['images'] = images;
+    data['images'] = image;
     return data;
   }
 }
