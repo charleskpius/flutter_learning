@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProductPage extends StatefulWidget {
   final String productKey;
@@ -34,8 +32,44 @@ class _ProductPageState extends State<ProductPage> {
       }
     } catch (error) {
       print('Error loading product data: $error');
-      throw error; // Rethrow the error so that FutureBuilder can catch it
+      rethrow; // Rethrow the error so that FutureBuilder can catch it
     }
+  }
+
+  Widget _buildProductImage(Map<String, dynamic> product) {
+    return product['images'] != null && product['images'].isNotEmpty
+        ? AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Image.network(
+              product['images'][0],
+              fit: BoxFit.cover,
+            ),
+          )
+        : const SizedBox.shrink();
+  }
+
+  Widget buildProductDetails(Map<String, dynamic> productData) {
+    int price = int.tryParse(productData['price'] ?? '') ?? 0;
+
+    return Center(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(productData['title'] ?? 'No title available', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          SizedBox(height: 10),
+          Text('Price: \$${price.toString()}', style: TextStyle(fontSize: 18)),
+          SizedBox(height: 10),
+          Text('Rating: ${productData['rating'] ?? 'No rating available'}', style: TextStyle(fontSize: 18)),
+          SizedBox(height: 10),
+          Text('Brand: ${productData['brand'] ?? 'No brand available'}', style: TextStyle(fontSize: 18)),
+          SizedBox(height: 10),
+          Text('Category: ${productData['category'] ?? 'No category available'}', style: TextStyle(fontSize: 18)),
+          SizedBox(height: 10),
+          Text('Description: ${productData['description'] ?? 'No description available'}', style: TextStyle(fontSize: 18)),
+          SizedBox(height: 20),
+        ],
+      ),
+    );
   }
 
   @override
@@ -63,7 +97,13 @@ class _ProductPageState extends State<ProductPage> {
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else {
-            return buildProductDetails(snapshot.data!);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildProductImage(snapshot.data!),
+                buildProductDetails(snapshot.data!),
+              ],
+            );
           }
         },
       ),
@@ -86,13 +126,6 @@ class _ProductPageState extends State<ProductPage> {
           }
         },
       ),
-    );
-  }
-
-  Widget buildProductDetails(Map<String, dynamic> productData) {
-    // Implement the UI for displaying product details here
-    return Center(
-      child: Text(productData['description'] ?? 'No description available'),
     );
   }
 
